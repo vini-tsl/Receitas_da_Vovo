@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block titulo %}
+  {% if receita %}Editar Receita{% else %}Nova Receita{% endif %} — Receitas da Vovó
+{% endblock %}
+
+{% block conteudo %}
+<div class="container">
+  <div class="form-receita">
+
+    <h1>
+      {% if receita %}<i class="fas fa-pen"></i> Editar Receita{% else %}<i class="fas fa-utensils"></i> Nova Receita{% endif %}
+    </h1>
+
+    <form
+      method="POST"
+      enctype="multipart/form-data"
+      action="{% if receita %}{{ url_for('editar_receita', id=receita.id) }}{% else %}{{ url_for('nova_receita') }}{% endif %}"
+    >
+
+      <div class="form-group">
+        <label for="nome">Nome da receita *</label>
+        <input
+          type="text"
+          id="nome"
+          name="nome"
+          placeholder="Ex: Bolo de Chocolate da Vovó"
+          value="{{ receita.nome if receita else '' }}"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="descricao">Descrição curta *</label>
+        <input
+          type="text"
+          id="descricao"
+          name="descricao"
+          placeholder="Uma frase que resume a receita"
+          value="{{ receita.descricao if receita else '' }}"
+          required
+        />
+      </div>
+
+      <div class="form-linha">
+        <div class="form-group">
+          <label for="categoria">Categoria *</label>
+          <select id="categoria" name="categoria" required>
+            <option value="">Selecione...</option>
+            {% for cat in ['Doce', 'Salgado', 'Sobremesa', 'Massa', 'Sopa', 'Salada', 'Lanche', 'Bebida', 'Outro'] %}
+              <option value="{{ cat }}"
+                {% if receita and receita.categoria == cat %}selected{% endif %}>
+                {{ cat }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tempo_preparo">Tempo de preparo *</label>
+          <input
+            type="text"
+            id="tempo_preparo"
+            name="tempo_preparo"
+            placeholder="Ex: 45 minutos"
+            value="{{ receita.tempo_preparo if receita else '' }}"
+            required
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="porcoes">Porções *</label>
+        <input
+          type="text"
+          id="porcoes"
+          name="porcoes"
+          placeholder="Ex: 4 pessoas"
+          value="{{ receita.porcoes if receita else '' }}"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="ingredientes">Ingredientes *</label>
+        <textarea
+          id="ingredientes"
+          name="ingredientes"
+          placeholder="Liste os ingredientes, um por linha.&#10;Ex:&#10;2 xícaras de farinha&#10;3 ovos&#10;1 colher de manteiga"
+          required
+          style="min-height: 140px;"
+        >{{ receita.ingredientes if receita else '' }}</textarea>
+        <span class="form-hint">Digite um ingrediente por linha.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="modo_preparo">Modo de Preparo *</label>
+        <textarea
+          id="modo_preparo"
+          name="modo_preparo"
+          placeholder="Descreva o passo a passo.&#10;Ex:&#10;1. Preaqueça o forno a 180°C&#10;2. Misture os ingredientes secos&#10;3. ..."
+          required
+          style="min-height: 180px;"
+        >{{ receita.modo_preparo if receita else '' }}</textarea>
+        <span class="form-hint">Numere os passos para ficar mais fácil de seguir.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Foto da receita (opcional)</label>
+
+        <div class="upload-area" id="upload-area">
+          <input type="file" id="foto" name="foto" accept="image/*" />
+          <div id="upload-texto">
+            <p style="font-size: 2rem; margin-bottom: 0.5rem;"><i class="fas fa-camera"></i></p>
+            <p style="color: #aaa; font-size: 0.9rem;">
+              Clique aqui para escolher uma foto<br>
+              <small>PNG, JPG, GIF ou WEBP</small>
+            </p>
+          </div>
+          <img id="upload-preview" class="upload-preview" alt="Preview da foto" />
+        </div>
+
+ 
+        {% if receita and receita.foto %}
+          <div style="margin-top: 0.8rem;">
+            <p style="font-size: 0.85rem; color: #888; margin-bottom: 0.4rem;">Foto atual:</p>
+            <img
+              src="{{ url_for('static', filename='uploads/' + receita.foto) }}"
+              alt="Foto atual"
+              style="max-height: 160px; border-radius: 8px;"
+            />
+            <p style="font-size: 0.78rem; color: #aaa; margin-top: 0.3rem;">
+              Envie uma nova foto acima para substituir.
+            </p>
+          </div>
+        {% endif %}
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary">
+          {% if receita %}<i class="fas fa-save"></i> Salvar Alterações{% else %}<i class="fas fa-utensils"></i> Adicionar Receita{% endif %}
+        </button>
+        <a
+          href="{% if receita %}{{ url_for('ver_receita', id=receita.id) }}{% else %}{{ url_for('index') }}{% endif %}"
+          class="btn btn-secondary"
+        >
+          Cancelar
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

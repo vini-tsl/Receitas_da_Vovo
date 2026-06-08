@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Receitas da Vovó</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="auth-page">
+
+  <div style="width: 100%; max-width: 440px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for categoria, mensagem in messages %}
+          <div class="flash flash-{{ categoria }}" style="margin-bottom: 1rem; border-radius: 12px;">
+            {% if categoria == 'sucesso' %}<i class="fas fa-check-circle"></i>{% elif categoria == 'erro' %}<i class="fas fa-times-circle"></i>{% else %}<i class="fas fa-info-circle"></i>{% endif %}
+            {{ mensagem }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-card">
+      <div class="auth-logo">
+        <span class="emoji"><i class="fas fa-utensils"></i></span>
+        <h1>Receitas da Vovó</h1>
+        <p>Entre para ver as receitas da família</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('login') }}">
+
+        <div class="form-group">
+          <label for="email">E-mail</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="seu@email.com"
+            required
+            autofocus
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="senha">Senha</label>
+          <input
+            type="password"
+            id="senha"
+            name="senha"
+            placeholder="••••••••"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Entrar
+        </button>
+
+      </form>
+
+      <p class="link-alt">
+        Não tem conta? <a href="{{ url_for('cadastro') }}">Cadastre-se</a>
+      </p>
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

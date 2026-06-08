@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Receitas da Vovó</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="auth-page">
+
+  <div style="width: 100%; max-width: 440px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for categoria, mensagem in messages %}
+          <div class="flash flash-{{ categoria }}" style="margin-bottom: 1rem; border-radius: 12px;">
+            {% if categoria == 'sucesso' %}<i class="fas fa-check-circle"></i>{% elif categoria == 'erro' %}<i class="fas fa-times-circle"></i>{% else %}<i class="fas fa-info-circle"></i>{% endif %}
+            {{ mensagem }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-card">
+      <div class="auth-logo">
+        <span class="emoji"><i class="fas fa-utensils"></i></span>
+        <h1>Criar Conta</h1>
+        <p>Junte-se à família e compartilhe receitas</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('cadastro') }}">
+
+        <div class="form-group">
+          <label for="nome">Nome completo</label>
+          <input
+            type="text"
+            id="nome"
+            name="nome"
+            placeholder="Seu nome"
+            required
+            autofocus
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">E-mail</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="seu@email.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="senha">Senha</label>
+          <input
+            type="password"
+            id="senha"
+            name="senha"
+            placeholder="Mínimo 6 caracteres"
+            required
+            minlength="6"
+          />
+          <span class="form-hint">A senha deve ter pelo menos 6 caracteres.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="senha2">Confirmar senha</label>
+          <input
+            type="password"
+            id="senha2"
+            name="senha2"
+            placeholder="Repita a senha"
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Criar Conta
+        </button>
+
+      </form>
+
+      <p class="link-alt">
+        Já tem conta? <a href="{{ url_for('login') }}">Fazer login</a>
+      </p>
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

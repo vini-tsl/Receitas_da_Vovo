@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block titulo %}Receitas da Vovó{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  {% if session.get('usuario_id') %}
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-logo">
+      <span><i class="fa-solid fa-cookie"></i></span> Receitas da Vovó
+    </a>
+
+    <div class="navbar-links">
+      <span class="navbar-user">Olá, {{ session.get('usuario_nome') }} <i class="fas fa-hand-wave"></i></span>
+      <a href="{{ url_for('nova_receita') }}" class="btn-nova">+ Nova Receita</a>
+      <a href="{{ url_for('logout') }}">Sair</a>
+    </div>
+  </nav>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for categoria, mensagem in messages %}
+          <div class="flash flash-{{ categoria }}">
+            {% if categoria == 'sucesso' %}<i class="fas fa-check-circle"></i>{% elif categoria == 'erro' %}<i class="fas fa-times-circle"></i>{% else %}<i class="fas fa-info-circle"></i>{% endif %}
+            {{ mensagem }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block conteudo %}{% endblock %}
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

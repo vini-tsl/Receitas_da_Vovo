@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{{ receita.nome }} — Receitas da Vovó{% endblock %}
+
+{% block conteudo %}
+<div class="container">
+
+  <div style="margin-bottom: 1rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">← Voltar</a>
+  </div>
+
+  <div class="receita-detalhe">
+
+    {% if receita.foto %}
+      <img
+        class="receita-foto-grande"
+        src="{{ url_for('static', filename='uploads/' + receita.foto) }}"
+        alt="{{ receita.nome }}"
+      />
+    {% else %}
+      <div class="receita-foto-placeholder">
+        {% if receita.categoria == 'Doce' %}<i class="fas fa-birthday-cake"></i>
+        {% elif receita.categoria == 'Salgado' %}<i class="fas fa-drumstick-bite"></i>
+        {% elif receita.categoria == 'Sobremesa' %}<i class="fas fa-ice-cream"></i>
+        {% elif receita.categoria == 'Massa' %}<i class="fas fa-bacon"></i>
+        {% elif receita.categoria == 'Sopa' %}<i class="fas fa-mug-hot"></i>
+        {% elif receita.categoria == 'Salada' %}<i class="fas fa-carrot"></i>
+        {% else %}<i class="fas fa-utensils"></i>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="receita-conteudo">
+
+      <div style="display:flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+        <span class="card-categoria">{{ receita.categoria }}</span>
+        {% if receita.fixa %}
+          <span class="badge-vovo"><i class="fas fa-user-nurse"></i> Receita da Vovó</span>
+        {% endif %}
+      </div>
+
+      <h1>{{ receita.nome }}</h1>
+      <p style="color: #888; margin-top: 0.3rem;">{{ receita.descricao }}</p>
+
+      <div class="receita-meta">
+        <div class="receita-meta-item">
+          <span class="icone"><i class="fas fa-stopwatch"></i></span>
+          <span class="label">Tempo</span>
+          <span class="valor">{{ receita.tempo_preparo }}</span>
+        </div>
+        <div class="receita-meta-item">
+          <span class="icone"><i class="fas fa-users"></i></span>
+          <span class="label">Porções</span>
+          <span class="valor">{{ receita.porcoes }}</span>
+        </div>
+        <div class="receita-meta-item">
+          <span class="icone"><i class="fas fa-tag"></i></span>
+          <span class="label">Categoria</span>
+          <span class="valor">{{ receita.categoria }}</span>
+        </div>
+        {% if receita.dono %}
+        <div class="receita-meta-item">
+          <span class="icone"><i class="fas fa-user"></i></span>
+          <span class="label">Autor</span>
+          <span class="valor">{{ receita.dono.nome }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="receita-secao">
+        <h2><i class="fas fa-mortar-pestle"></i> Ingredientes</h2>
+        <p>{{ receita.ingredientes }}</p>
+      </div>
+
+      <div class="receita-secao">
+        <h2><i class="fas fa-hat-chef"></i> Modo de Preparo</h2>
+        <p>{{ receita.modo_preparo }}</p>
+      </div>
+
+      {% if not receita.fixa and receita.usuario_id == session.get('usuario_id') %}
+        <div class="receita-acoes">
+          <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-secondary">
+            <i class="fas fa-pen"></i> Editar Receita
+          </a>
+
+          <form id="form-excluir" method="POST" action="{{ url_for('excluir_receita', id=receita.id) }}">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-trash"></i> Excluir Receita
+            </button>
+          </form>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
