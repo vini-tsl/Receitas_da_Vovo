@@ -16,6 +16,7 @@
 
     <div class="navbar-links">
       <span class="navbar-user">Olá, {{ session.get('usuario_nome') }} <i class="fas fa-hand-wave"></i></span>
+      <a href="{{ url_for('perfil') }}">Meu Perfil</a>
       <a href="{{ url_for('nova_receita') }}" class="btn-nova">+ Nova Receita</a>
       <a href="{{ url_for('logout') }}">Sair</a>
     </div>

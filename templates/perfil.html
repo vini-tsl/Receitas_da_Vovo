@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Meu Perfil — Receitas da Vovó{% endblock %}
+
+{% block conteudo %}
+<div class="container">
+
+  {# ── Cabeçalho do perfil ── #}
+  <div class="perfil-header">
+    <div class="perfil-avatar"><i class="fa-solid fa-user"></i></div>
+
+    <div class="perfil-info">
+      <h1>{{ usuario.nome }}</h1>
+      <p>{{ usuario.email }}</p>
+
+      <div class="perfil-stats">
+        <div class="perfil-stat">
+          <span class="numero">{{ receitas_publicadas | length }}</span>
+          <span class="label">Receitas</span>
+        </div>
+        <div class="perfil-stat">
+          <span class="numero">{{ receitas_favoritas | length }}</span>
+          <span class="label">Favoritos</span>
+        </div>
+        <div class="perfil-stat">
+          <span class="numero">{{ comentarios | length }}</span>
+          <span class="label">Comentários</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Receitas publicadas ── #}
+  <div class="perfil-secao">
+    <h2><i class="fa-solid fa-utensils"></i> Minhas Receitas ({{ receitas_publicadas | length }})</h2>
+
+    {% if receitas_publicadas %}
+      <div class="perfil-receitas-lista">
+        {% for receita in receitas_publicadas %}
+          <div class="perfil-receita-item">
+            <a href="{{ url_for('ver_receita', id=receita.id) }}">{{ receita.nome }}</a>
+            <div style="display:flex; gap: 0.5rem; align-items: center;">
+              <span class="card-categoria">{{ receita.categoria }}</span>
+              <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-secondary"
+                 style="padding: 4px 12px; font-size: 0.8rem;"><i class="fas fa-pen"></i> Editar</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="sem-comentarios">Você ainda não publicou nenhuma receita.
+        <a href="{{ url_for('nova_receita') }}">Adicione a primeira!</a>
+      </p>
+    {% endif %}
+  </div>
+
+  {# ── Receitas favoritas ── #}
+  <div class="perfil-secao">
+    <h2><i class="fas fa-star"></i> Receitas Favoritas ({{ receitas_favoritas | length }})</h2>
+
+    {% if receitas_favoritas %}
+      <div class="perfil-receitas-lista">
+        {% for receita in receitas_favoritas %}
+          <div class="perfil-receita-item">
+            <a href="{{ url_for('ver_receita', id=receita.id) }}">{{ receita.nome }}</a>
+            <span class="card-categoria">{{ receita.categoria }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="sem-comentarios">Você ainda não favoritou nenhuma receita.
+        <a href="{{ url_for('index') }}">Explore as receitas!</a>
+      </p>
+    {% endif %}
+  </div>
+
+  {# ── Comentários feitos ── #}
+  <div class="perfil-secao">
+    <h2><i class="fa-solid fa-comment"></i> Meus Comentários ({{ comentarios | length }})</h2>
+
+    {% if comentarios %}
+      {% for comentario in comentarios %}
+        <div class="perfil-comentario-item">
+          <p class="receita-ref">
+            Em <a href="{{ url_for('ver_receita', id=comentario.receita_id) }}">
+              {{ comentario.receita.nome }}
+            </a>
+            — {{ comentario.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+          </p>
+          <p>{{ comentario.texto }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="sem-comentarios">Você ainda não fez nenhum comentário.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

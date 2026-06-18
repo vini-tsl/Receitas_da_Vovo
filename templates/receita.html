@@ -77,8 +77,16 @@
         <p>{{ receita.modo_preparo }}</p>
       </div>
 
-      {% if not receita.fixa and receita.usuario_id == session.get('usuario_id') %}
-        <div class="receita-acoes">
+  
+      <div class="receita-acoes">
+          {% set ja_favoritou = namespace(valor=false) %}
+          {% for f in receita.dono.favoritos if receita.dono %}{% endfor %}
+          <form method="POST" action="{{ url_for('favoritar', id=receita.id) }}">
+          <button type="submit" class="btn {% if favoritado %}btn-favorito-ativo{% else %}btn-secondary{% endif %}">
+            {% if favoritado %}<i class="fas fa-star"></i> Favoritado{% else %}<i class="far fa-star"></i> Favoritar{% endif %}
+          </button>
+          </form>
+          {% if not receita.fixa and receita.usuario_id == session.get('usuario_id') %}
           <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-secondary">
             <i class="fas fa-pen"></i> Editar Receita
           </a>
@@ -88,8 +96,54 @@
               <i class="fas fa-trash"></i> Excluir Receita
             </button>
           </form>
-        </div>
-      {% endif %}
+          {% endif %}
+      </div>
+        
+      <div class="comentarios-secao">
+        <h2 class="comentarios-titulo"><i class="fa-solid fa-comment"></i> Comentários ({{ receita.comentarios | length }})</h2>
+
+        {# Formulário para novo comentário #}
+        <form method="POST" action="{{ url_for('comentar', receita_id=receita.id) }}" class="form-comentario">
+          <textarea
+            name="texto"
+            placeholder="Deixe um comentário sobre essa receita..."
+            maxlength="500"
+            required
+          ></textarea>
+          <button type="submit" class="btn btn-primary">Comentar</button>
+        </form>
+
+        {# Lista de comentários #}
+        {% if receita.comentarios %}
+          <div class="comentarios-lista">
+            {% for comentario in receita.comentarios | sort(attribute='data_criacao', reverse=True) %}
+              <div class="comentario-card">
+                <div class="comentario-header">
+                  <span class="comentario-autor"><i class="fa-solid fa-user"></i> {{ comentario.autor.nome }}</span>
+                  <span class="comentario-data">
+                    {{ comentario.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+                  </span>
+                </div>
+                <p class="comentario-texto">{{ comentario.texto }}</p>
+
+                {# Botão de excluir: visível para o autor do comentário ou dono da receita #}
+                {% if comentario.usuario_id == session.get('usuario_id') or
+                      receita.usuario_id == session.get('usuario_id') %}
+                  <form method="POST" action="{{ url_for('excluir_comentario', id=comentario.id) }}"
+                        style="margin-top: 0.5rem;">
+                    <button type="submit" class="btn-excluir-comentario"
+                            onclick="return confirm('Excluir este comentário?')">
+                      <i class="fas fa-trash"></i> Excluir
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="sem-comentarios">Ainda não há comentários. Seja o primeiro! <i class="fa-solid fa-utensils"></i></p>
+        {% endif %}
+      </div>
 
     </div>
   </div>

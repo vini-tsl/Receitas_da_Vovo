@@ -3,34 +3,49 @@ from flask import (Flask, render_template, request, redirect,
                    url_for, session, flash)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, Usuario, Receita
+from models import db, Usuario, Receita, Favorito, Comentario
 
+# ─────────────────────────────────────────
+#  CONFIGURAÇÃO DO APP
+# ─────────────────────────────────────────
 app = Flask(__name__)
 
-app.secret_key = '213SA210319KWIAOX0291'
+app.secret_key = '213SA210319KWIAOX0291'  # Necessário para usar sessões
 
+# Diz onde fica o banco de dados (pasta instance/)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///receitas.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Configuração de upload de fotos
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 EXTENSOES_PERMITIDAS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Liga o banco de dados ao app
 db.init_app(app)
 
 
+# ─────────────────────────────────────────
+#  FUNÇÕES AUXILIARES
+# ─────────────────────────────────────────
 def extensao_permitida(nome_arquivo):
+    """Verifica se o arquivo enviado tem uma extensão válida de imagem."""
     return ('.' in nome_arquivo and
             nome_arquivo.rsplit('.', 1)[1].lower() in EXTENSOES_PERMITIDAS)
 
 
 def usuario_logado():
+    """Retorna True se existe um usuário na sessão (ou seja, está logado)."""
     return 'usuario_id' in session
 
 
 def popular_banco():
+    """
+    Adiciona receitas fixas (da vovó) ao banco quando ele é criado pela primeira vez.
+    Só executa se ainda não houver receitas fixas cadastradas.
+    """
     if Receita.query.filter_by(fixa=True).first():
-        return
+        return  # Já tem receitas fixas, não precisa cadastrar de novo
 
     receitas_da_vovo = [
         Receita(
@@ -76,8 +91,12 @@ def popular_banco():
     print('Receitas cadastradas!')
 
 
+# ─────────────────────────────────────────
+#  ROTAS DE AUTENTICAÇÃO
+# ─────────────────────────────────────────
 @app.route('/')
 def inicio():
+    """Redireciona para login se não estiver logado, ou para a página principal."""
     if usuario_logado():
         return redirect(url_for('index'))
     return redirect(url_for('login'))
@@ -85,6 +104,7 @@ def inicio():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """Tela de login. GET mostra o formulário, POST processa os dados."""
     if usuario_logado():
         return redirect(url_for('index'))
 
@@ -92,12 +112,15 @@ def login():
         email = request.form.get('email', '').strip()
         senha = request.form.get('senha', '')
 
+        # Valida campos obrigatórios
         if not email or not senha:
             flash('Preencha todos os campos.', 'erro')
             return render_template('login.html')
 
+        # Busca o usuário pelo email
         usuario = Usuario.query.filter_by(email=email).first()
 
+        # Verifica se o usuário existe e a senha está correta
         if usuario and check_password_hash(usuario.senha, senha):
             session['usuario_id'] = usuario.id
             session['usuario_nome'] = usuario.nome
@@ -111,6 +134,7 @@ def login():
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
+    """Tela de cadastro de novo usuário."""
     if usuario_logado():
         return redirect(url_for('index'))
 
@@ -120,6 +144,7 @@ def cadastro():
         senha = request.form.get('senha', '')
         senha2 = request.form.get('senha2', '')
 
+        # Validações
         if not nome or not email or not senha or not senha2:
             flash('Preencha todos os campos.', 'erro')
             return render_template('cadastro.html')
@@ -132,14 +157,16 @@ def cadastro():
             flash('A senha deve ter pelo menos 6 caracteres.', 'erro')
             return render_template('cadastro.html')
 
+        # Verifica se o email já está cadastrado
         if Usuario.query.filter_by(email=email).first():
             flash('Este email já está cadastrado.', 'erro')
             return render_template('cadastro.html')
 
+        # Cria o novo usuário com a senha criptografada
         novo_usuario = Usuario(
             nome=nome,
             email=email,
-            senha=generate_password_hash(senha)
+            senha=generate_password_hash(senha)  # Nunca salva a senha direta!
         )
         db.session.add(novo_usuario)
         db.session.commit()
@@ -152,19 +179,25 @@ def cadastro():
 
 @app.route('/logout')
 def logout():
+    """Remove os dados da sessão e redireciona para o login."""
     session.clear()
     flash('Você saiu do sistema.', 'info')
     return redirect(url_for('login'))
 
 
+# ─────────────────────────────────────────
+#  ROTAS DAS RECEITAS
+# ─────────────────────────────────────────
 @app.route('/receitas')
 def index():
+    """Página principal: lista todas as receitas com busca por nome."""
     if not usuario_logado():
         return redirect(url_for('login'))
 
     busca = request.args.get('busca', '').strip()
 
     if busca:
+        # LIKE '%termo%' busca o texto em qualquer parte do nome
         receitas = Receita.query.filter(
             Receita.nome.ilike(f'%{busca}%')
         ).order_by(Receita.fixa.desc(), Receita.nome).all()
@@ -176,15 +209,24 @@ def index():
 
 @app.route('/receita/<int:id>')
 def ver_receita(id):
+    """Página de detalhes de uma receita."""
     if not usuario_logado():
         return redirect(url_for('login'))
 
     receita = Receita.query.get_or_404(id)
-    return render_template('receita.html', receita=receita)
+
+    # Verifica se o usuário logado já favoritou esta receita
+    favoritado = Favorito.query.filter_by(
+        usuario_id=session['usuario_id'],
+        receita_id=id
+    ).first() is not None
+
+    return render_template('receita.html', receita=receita, favoritado=favoritado)
 
 
 @app.route('/receita/nova', methods=['GET', 'POST'])
 def nova_receita():
+    """Formulário para adicionar uma nova receita."""
     if not usuario_logado():
         return redirect(url_for('login'))
 
@@ -201,10 +243,12 @@ def nova_receita():
             flash('Preencha todos os campos obrigatórios.', 'erro')
             return render_template('form_receita.html', receita=None)
 
+        # Processa o upload da foto
         nome_foto = None
         foto = request.files.get('foto')
         if foto and foto.filename and extensao_permitida(foto.filename):
             nome_seguro = secure_filename(foto.filename)
+            # Adiciona o id da sessão para evitar conflito de nomes
             nome_foto = f"{session['usuario_id']}_{nome_seguro}"
             foto.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_foto))
 
@@ -231,11 +275,13 @@ def nova_receita():
 
 @app.route('/receita/editar/<int:id>', methods=['GET', 'POST'])
 def editar_receita(id):
+    """Formulário para editar uma receita existente."""
     if not usuario_logado():
         return redirect(url_for('login'))
 
     receita = Receita.query.get_or_404(id)
 
+    # Bloqueia edição de receitas fixas ou de outros usuários
     if receita.fixa or receita.usuario_id != session['usuario_id']:
         flash('Você não tem permissão para editar esta receita.', 'erro')
         return redirect(url_for('index'))
@@ -255,8 +301,10 @@ def editar_receita(id):
             flash('Preencha todos os campos obrigatórios.', 'erro')
             return render_template('form_receita.html', receita=receita)
 
+        # Atualiza foto se uma nova foi enviada
         foto = request.files.get('foto')
         if foto and foto.filename and extensao_permitida(foto.filename):
+            # Remove a foto antiga se existir
             if receita.foto:
                 caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], receita.foto)
                 if os.path.exists(caminho_antigo):
@@ -276,6 +324,7 @@ def editar_receita(id):
 
 @app.route('/receita/excluir/<int:id>', methods=['POST'])
 def excluir_receita(id):
+    """Exclui uma receita. Só o dono pode excluir."""
     if not usuario_logado():
         return redirect(url_for('login'))
 
@@ -285,6 +334,7 @@ def excluir_receita(id):
         flash('Você não tem permissão para excluir esta receita.', 'erro')
         return redirect(url_for('index'))
 
+    # Remove a foto do disco se existir
     if receita.foto:
         caminho = os.path.join(app.config['UPLOAD_FOLDER'], receita.foto)
         if os.path.exists(caminho):
@@ -297,9 +347,141 @@ def excluir_receita(id):
     return redirect(url_for('index'))
 
 
+# ─────────────────────────────────────────
+#  ROTAS DE FAVORITOS
+# ─────────────────────────────────────────
+@app.route('/favoritar/<int:id>', methods=['POST'])
+def favoritar(id):
+    """Adiciona ou remove uma receita dos favoritos do usuário logado."""
+    if not usuario_logado():
+        return redirect(url_for('login'))
+
+    receita = Receita.query.get_or_404(id)
+
+    # Verifica se já existe esse favorito no banco
+    ja_favoritou = Favorito.query.filter_by(
+        usuario_id=session['usuario_id'],
+        receita_id=receita.id
+    ).first()
+
+    if ja_favoritou:
+        # Se já favoritou, remove (desfavorita)
+        db.session.delete(ja_favoritou)
+        db.session.commit()
+        flash('Receita removida dos favoritos.', 'info')
+    else:
+        # Se ainda não favoritou, adiciona
+        novo_favorito = Favorito(
+            usuario_id=session['usuario_id'],
+            receita_id=receita.id
+        )
+        db.session.add(novo_favorito)
+        db.session.commit()
+        flash('Receita adicionada aos favoritos! ⭐', 'sucesso')
+
+    return redirect(url_for('ver_receita', id=receita.id))
+
+
+# ─────────────────────────────────────────
+#  ROTAS DE COMENTÁRIOS
+# ─────────────────────────────────────────
+@app.route('/comentar/<int:receita_id>', methods=['POST'])
+def comentar(receita_id):
+    """Adiciona um comentário em uma receita."""
+    if not usuario_logado():
+        return redirect(url_for('login'))
+
+    receita = Receita.query.get_or_404(receita_id)
+    texto = request.form.get('texto', '').strip()
+
+    if not texto:
+        flash('O comentário não pode estar vazio.', 'erro')
+        return redirect(url_for('ver_receita', id=receita_id))
+
+    if len(texto) > 500:
+        flash('O comentário deve ter no máximo 500 caracteres.', 'erro')
+        return redirect(url_for('ver_receita', id=receita_id))
+
+    novo_comentario = Comentario(
+        texto=texto,
+        usuario_id=session['usuario_id'],
+        receita_id=receita.id
+    )
+    db.session.add(novo_comentario)
+    db.session.commit()
+
+    flash('Comentário adicionado! 💬', 'sucesso')
+    return redirect(url_for('ver_receita', id=receita_id))
+
+
+@app.route('/comentario/excluir/<int:id>', methods=['POST'])
+def excluir_comentario(id):
+    """Exclui um comentário. Permitido para o autor ou o dono da receita."""
+    if not usuario_logado():
+        return redirect(url_for('login'))
+
+    comentario = Comentario.query.get_or_404(id)
+    receita_id = comentario.receita_id
+
+    # Verifica se quem está tentando excluir é o autor do comentário
+    # ou o dono da receita onde o comentário foi feito
+    eh_autor     = comentario.usuario_id == session['usuario_id']
+    eh_dono      = comentario.receita.usuario_id == session['usuario_id']
+
+    if not eh_autor and not eh_dono:
+        flash('Você não tem permissão para excluir este comentário.', 'erro')
+        return redirect(url_for('ver_receita', id=receita_id))
+
+    db.session.delete(comentario)
+    db.session.commit()
+
+    flash('Comentário excluído.', 'info')
+    return redirect(url_for('ver_receita', id=receita_id))
+
+
+# ─────────────────────────────────────────
+#  ROTA DO PERFIL
+# ─────────────────────────────────────────
+@app.route('/perfil')
+def perfil():
+    """Página de perfil do usuário logado."""
+    if not usuario_logado():
+        return redirect(url_for('login'))
+
+    usuario = Usuario.query.get_or_404(session['usuario_id'])
+
+    # Receitas publicadas pelo usuário (excluindo as fixas da vovó)
+    receitas_publicadas = Receita.query.filter_by(
+        usuario_id=usuario.id
+    ).order_by(Receita.nome).all()
+
+    # Receitas favoritas: busca os favoritos do usuário e carrega as receitas
+    favoritos   = Favorito.query.filter_by(usuario_id=usuario.id).all()
+    ids_favoritos = [f.receita_id for f in favoritos]
+    receitas_favoritas = Receita.query.filter(
+        Receita.id.in_(ids_favoritos)
+    ).all() if ids_favoritos else []
+
+    # Comentários feitos pelo usuário, do mais recente para o mais antigo
+    comentarios = Comentario.query.filter_by(
+        usuario_id=usuario.id
+    ).order_by(Comentario.data_criacao.desc()).all()
+
+    return render_template(
+        'perfil.html',
+        usuario=usuario,
+        receitas_publicadas=receitas_publicadas,
+        receitas_favoritas=receitas_favoritas,
+        comentarios=comentarios
+    )
+
+
+# ─────────────────────────────────────────
+#  INICIALIZAÇÃO
+# ─────────────────────────────────────────
 with app.app_context():
-    db.create_all()
-    popular_banco()
+    db.create_all()       # Cria as tabelas no banco se não existirem
+    popular_banco()       # Adiciona as receitas fixas da vovó
 
 if __name__ == '__main__':
     app.run(debug=True)
