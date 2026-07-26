@@ -996,3 +996,79 @@ a:hover { color: var(--laranja-esc); }
   color: #777;
   line-height: 1.6;
 }
+
+/* ════════════════════════════════════════
+   BUSCA AVANÇADA
+   ════════════════════════════════════════ */
+.busca-container {
+  margin-bottom: 2rem;
+}
+
+.filtros-avancados {
+  background: var(--branco);
+  border: 2px solid var(--creme-esc);
+  border-radius: var(--raio);
+  padding: 1.5rem;
+  margin-top: 0.8rem;
+  animation: slideDown 0.2s ease;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.filtros-acoes {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid var(--creme-esc);
+}
+
+/* Badges de filtros ativos */
+.filtros-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.badge-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff0e0;
+  color: var(--marrom);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--creme-esc);
+}
+
+.badge-filtro a {
+  color: var(--laranja);
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Badges de dificuldade nos cards */
+.dificuldade-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.dif-fácil  { background: #d4edda; color: #155724; }
+.dif-médio  { background: #fff3cd; color: #856404; }
+.dif-difícil { background: #f8d7da; color: #721c24; }
+
+@media (max-width: 600px) {
+  .filtros-grid { grid-template-columns: 1fr; }
+}

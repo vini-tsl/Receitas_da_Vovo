@@ -1,32 +1,130 @@
 {% extends 'base.html' %}
 
-{% block titulo %}Receitas da Vovó{% endblock %}
+{% block titulo %}Início — Receitas da Vovó{% endblock %}
 
 {% block conteudo %}
 <div class="container">
 
+  {# ── Cabeçalho ── #}
   <div class="page-header">
     <h1><i class="fas fa-utensils"></i> Todas as Receitas</h1>
     <p>
-      {% if busca %}
-        Resultados para "<strong>{{ busca }}</strong>"
-        — <a href="{{ url_for('index') }}">ver todas</a>
+      {% if busca or filtros_ativos %}
+        Mostrando {{ receitas | length }} resultado(s)
+        {% if busca %} para "<strong>{{ busca }}</strong>"{% endif %}
+        — <a href="{{ url_for('index') }}">limpar tudo</a>
       {% else %}
         Receitas da família e contribuições da comunidade
       {% endif %}
     </p>
   </div>
 
-  <form class="search-bar" method="GET" action="{{ url_for('index') }}">
-    <input
-      type="text"
-      name="busca"
-      placeholder="Buscar receita pelo nome..."
-      value="{{ busca }}"
-    />
-    <button type="submit">Buscar</button>
-  </form>
+  {# ════════════════════════════════════════
+     ÁREA DE BUSCA
+     ════════════════════════════════════════ #}
+  <div class="busca-container">
+    <form method="GET" action="{{ url_for('index') }}" id="form-busca">
 
+      {# ── Barra de pesquisa simples ── #}
+      <div class="search-bar">
+        <input
+          type="text"
+          name="busca"
+          id="input-busca"
+          placeholder="Buscar por nome, ingrediente ou descrição..."
+          value="{{ busca }}"
+        />
+        <button type="submit" class="btn btn-primary">Pesquisar</button>
+        <button type="button" class="btn btn-secondary" id="btn-avancado"
+                onclick="toggleFiltros()">
+          <i class="fas fa-gear"></i> <span id="label-avancado">{% if filtros_ativos %}Ocultar Filtros{% else %}Filtros Avançados{% endif %}</span>
+        </button>
+      </div>
+
+      {# ── Painel de filtros avançados (expansível) ── #}
+      <div class="filtros-avancados" id="filtros-avancados"
+           style="display: {% if filtros_ativos %}block{% else %}none{% endif %};">
+
+        <div class="filtros-grid">
+
+          {# Categoria #}
+          <div class="form-group">
+            <label for="f-categoria">Categoria</label>
+            <select id="f-categoria" name="categoria">
+              <option value="">Todas</option>
+              {% for cat in categorias %}
+                <option value="{{ cat }}" {% if categoria == cat %}selected{% endif %}>
+                  {{ cat }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Dificuldade #}
+          <div class="form-group">
+            <label for="f-dificuldade">Dificuldade</label>
+            <select id="f-dificuldade" name="dificuldade">
+              <option value="">Qualquer</option>
+              {% for dif in ['Fácil', 'Médio', 'Difícil'] %}
+                <option value="{{ dif }}" {% if dificuldade == dif %}selected{% endif %}>
+                  {{ dif }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Tempo máximo #}
+          <div class="form-group">
+            <label for="f-tempo">Tempo máximo (minutos)</label>
+            <select id="f-tempo" name="tempo_max">
+              <option value="">Qualquer tempo</option>
+              {% for t, label in [(15,'Até 15 min'),(30,'Até 30 min'),(60,'Até 1 hora'),(120,'Até 2 horas')] %}
+                <option value="{{ t }}" {% if tempo_max == t|string %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+
+        {# Botões dos filtros #}
+        <div class="filtros-acoes">
+          <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Aplicar Filtros</button>
+          <a href="{{ url_for('index', busca=busca) }}" class="btn btn-secondary"><i class="fas fa-trash"></i> Limpar Filtros</a>
+        </div>
+
+      </div>{# /filtros-avancados #}
+
+    </form>
+
+    {# ── Badges dos filtros ativos ── #}
+    {% if filtros_ativos %}
+      <div class="filtros-badges">
+        <span style="font-size:0.82rem; color:#888;">Filtros ativos:</span>
+        {% if categoria %}
+          <span class="badge-filtro"><i class="fas fa-tag"></i> {{ categoria }}
+            <a href="{{ url_for('index', busca=busca, dificuldade=dificuldade, tempo_max=tempo_max) }}">×</a>
+          </span>
+        {% endif %}
+        {% if dificuldade %}
+          <span class="badge-filtro"><i class="fas fa-bolt"></i> {{ dificuldade }}
+            <a href="{{ url_for('index', busca=busca, categoria=categoria, tempo_max=tempo_max) }}">×</a>
+          </span>
+        {% endif %}
+        {% if tempo_max %}
+          <span class="badge-filtro"><i class="fas fa-clock"></i> ⏱ Até {{ tempo_max }} min
+            <a href="{{ url_for('index', busca=busca, categoria=categoria, dificuldade=dificuldade) }}">×</a>
+          </span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>{# /busca-container #}
+
+  {# ════════════════════════════════════════
+     GRADE DE RECEITAS
+     ════════════════════════════════════════ #}
   {% if receitas %}
     <div class="receitas-grid">
       {% for receita in receitas %}
@@ -34,21 +132,19 @@
           <div class="card {% if receita.fixa %}card-fixa{% endif %}">
 
             {% if receita.foto %}
-              <img
-                class="card-img"
+              <img class="card-img"
                 src="{{ url_for('static', filename='uploads/' + receita.foto) }}"
-                alt="{{ receita.nome }}"
-              />
+                alt="{{ receita.nome }}" />
             {% else %}
               <div class="card-img-placeholder">
-                {% if receita.categoria == 'Doce' %}<i class="fas fa-birthday-cake"></i>
+                {% if receita.categoria == 'Doce' %}<i class="fas fa-cookie"></i>
                 {% elif receita.categoria == 'Salgado' %}<i class="fas fa-drumstick-bite"></i>
                 {% elif receita.categoria == 'Sobremesa' %}<i class="fas fa-ice-cream"></i>
-                {% elif receita.categoria == 'Massa' %}<i class="fas fa-bacon"></i>
-                {% elif receita.categoria == 'Sopa' %}<i class="fas fa-mug-hot"></i>
+                {% elif receita.categoria == 'Massa' %}<i class="fas fa-pizza-slice"></i>
+                {% elif receita.categoria == 'Sopa' %}<i class="fas fa-utensil-spoon"></i>
                 {% elif receita.categoria == 'Salada' %}<i class="fas fa-carrot"></i>
-                {% else %}<i class="fas fa-utensils"></i>
-                {% endif %}
+                {% else %}<i class="fas fa-utensils"></i>{% endif %}
+              
               </div>
             {% endif %}
 
@@ -58,7 +154,7 @@
               <p class="card-desc">{{ receita.descricao }}</p>
             </div>
 
-            <div class="card-footer">
+           <div class="card-footer">
               <span class="card-info"><i class="fas fa-stopwatch"></i> {{ receita.tempo_preparo }}</span>
               <span class="card-info"><i class="fas fa-users"></i> {{ receita.porcoes }}</span>
               {% if receita.fixa %}
@@ -76,16 +172,22 @@
       <span class="emoji"><i class="fas fa-search"></i></span>
       <h3>Nenhuma receita encontrada</h3>
       <p>
-        {% if busca %}
-          Não encontramos receitas com o nome "<strong>{{ busca }}</strong>".
-          <br><a href="{{ url_for('index') }}">Ver todas as receitas</a>
-        {% else %}
-          Ainda não há receitas cadastradas.
-          <br><a href="{{ url_for('nova_receita') }}">Adicione a primeira!</a>
-        {% endif %}
+        Tente usar outros termos ou
+        <a href="{{ url_for('index') }}">ver todas as receitas</a>.
       </p>
     </div>
   {% endif %}
 
 </div>
+
+<script>
+  // Abre ou fecha o painel de filtros avançados
+  function toggleFiltros() {
+    const painel = document.getElementById('filtros-avancados');
+    const label  = document.getElementById('label-avancado');
+    const aberto = painel.style.display === 'block';
+    painel.style.display = aberto ? 'none' : 'block';
+    label.textContent    = aberto ? 'Filtros Avançados' : 'Ocultar Filtros';
+  }
+</script>
 {% endblock %}

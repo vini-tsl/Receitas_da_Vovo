@@ -1,53 +1,19 @@
 {% extends 'base.html' %}
-
-{% block titulo %}{{ receita.nome }} — Receitas da Vovó{% endblock %}
-
+{% block titulo %}{{ receita.nome }}{% endblock %}
 {% block conteudo %}
 <div class="container">
-
-  <div style="margin-bottom: 1rem;">
-    <a href="{{ url_for('index') }}" class="btn btn-secondary">← Voltar</a>
-  </div>
-
-  <div class="receita-detalhe">
-
-    {% if receita.foto %}
-      <img
-        class="receita-foto-grande"
-        src="{{ url_for('static', filename='uploads/' + receita.foto) }}"
-        alt="{{ receita.nome }}"
-      />
-    {% else %}
-      <div class="receita-foto-placeholder">
-        {% if receita.categoria == 'Doce' %}<i class="fas fa-birthday-cake"></i>
-        {% elif receita.categoria == 'Salgado' %}<i class="fas fa-drumstick-bite"></i>
-        {% elif receita.categoria == 'Sobremesa' %}<i class="fas fa-ice-cream"></i>
-        {% elif receita.categoria == 'Massa' %}<i class="fas fa-bacon"></i>
-        {% elif receita.categoria == 'Sopa' %}<i class="fas fa-mug-hot"></i>
-        {% elif receita.categoria == 'Salada' %}<i class="fas fa-carrot"></i>
-        {% else %}<i class="fas fa-utensils"></i>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    <div class="receita-conteudo">
-
-      <div style="display:flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-        <span class="card-categoria">{{ receita.categoria }}</span>
-        {% if receita.fixa %}
-          <span class="badge-vovo"><i class="fas fa-user-nurse"></i> Receita da Vovó</span>
-        {% endif %}
-      </div>
-
-      <h1>{{ receita.nome }}</h1>
-      <p style="color: #888; margin-top: 0.3rem;">{{ receita.descricao }}</p>
-
-      <div class="receita-meta">
+<a href="{{ url_for('index') }}" class="btn btn-secondary">← Voltar</a>
+<div class="receita-detalhe" style="margin-top:1rem;">
+{% if receita.foto %}<img class="receita-foto-grande" src="{{ url_for('static', filename='uploads/' + receita.foto) }}" alt="{{ receita.nome }}"/>
+{% else %}<div class="receita-foto-placeholder"><i class="fas fa-utensils"></i></div>{% endif %}
+<div class="receita-conteudo">
+<h1>{{ receita.nome }}</h1>
+<div class="receita-meta">
         <div class="receita-meta-item">
           <span class="icone"><i class="fas fa-stopwatch"></i></span>
           <span class="label">Tempo</span>
           <span class="valor">{{ receita.tempo_preparo }}</span>
-        </div>
+</div>
         <div class="receita-meta-item">
           <span class="icone"><i class="fas fa-users"></i></span>
           <span class="label">Porções</span>
@@ -78,46 +44,32 @@
       </div>
 
   
-      <div class="receita-acoes">
-          {% set ja_favoritou = namespace(valor=false) %}
-          {% for f in receita.dono.favoritos if receita.dono %}{% endfor %}
-          <form method="POST" action="{{ url_for('favoritar', id=receita.id) }}">
+<div class="receita-acoes">
+<form method="POST" action="{{ url_for('favoritar', id=receita.id) }}">
           <button type="submit" class="btn {% if favoritado %}btn-favorito-ativo{% else %}btn-secondary{% endif %}">
             {% if favoritado %}<i class="fas fa-star"></i> Favoritado{% else %}<i class="far fa-star"></i> Favoritar{% endif %}
           </button>
-          </form>
-          {% if not receita.fixa and receita.usuario_id == session.get('usuario_id') %}
+</form>
+{% if not receita.fixa and receita.usuario_id == session.get('usuario_id') %}
           <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-secondary">
             <i class="fas fa-pen"></i> Editar Receita
           </a>
 
-          <form id="form-excluir" method="POST" action="{{ url_for('excluir_receita', id=receita.id) }}">
-            <button type="submit" class="btn btn-danger">
-              <i class="fas fa-trash"></i> Excluir Receita
-            </button>
-          </form>
-          {% endif %}
-      </div>
-        
-      <div class="comentarios-secao">
+<form id="form-excluir" method="POST" action="{{ url_for('excluir_receita', id=receita.id) }}">
+  <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
+</form>{% endif %}
+</div>
+<div class="comentarios-secao">
         <h2 class="comentarios-titulo"><i class="fa-solid fa-comment"></i> Comentários ({{ receita.comentarios | length }})</h2>
 
         {# Formulário para novo comentário #}
-        <form method="POST" action="{{ url_for('comentar', receita_id=receita.id) }}" class="form-comentario">
-          <textarea
-            name="texto"
-            placeholder="Deixe um comentário sobre essa receita..."
-            maxlength="500"
-            required
-          ></textarea>
-          <button type="submit" class="btn btn-primary">Comentar</button>
-        </form>
-
-        {# Lista de comentários #}
-        {% if receita.comentarios %}
-          <div class="comentarios-lista">
-            {% for comentario in receita.comentarios | sort(attribute='data_criacao', reverse=True) %}
-              <div class="comentario-card">
+<form method="POST" action="{{ url_for('comentar', receita_id=receita.id) }}" class="form-comentario">
+  <textarea name="texto" placeholder="Deixe um comentário..." maxlength="500" required></textarea>
+  <button type="submit" class="btn btn-primary">Comentar</button>
+</form>
+{% if receita.comentarios %}
+<div class="comentarios-lista">{% for c in receita.comentarios | sort(attribute='data_criacao', reverse=True) %}
+<div class="comentario-card">
                 <div class="comentario-header">
                   <span class="comentario-autor"><i class="fa-solid fa-user"></i> {{ comentario.autor.nome }}</span>
                   <span class="comentario-data">
@@ -149,4 +101,5 @@
   </div>
 
 </div>
+</div></div></div>
 {% endblock %}
