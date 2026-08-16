@@ -56,7 +56,7 @@
           </a>
 
 <form id="form-excluir" method="POST" action="{{ url_for('excluir_receita', id=receita.id) }}">
-  <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
+  <button type="submit" class="btn btn-danger">Excluir</button>
 </form>{% endif %}
 </div>
 <div class="comentarios-secao">
@@ -68,7 +68,7 @@
   <button type="submit" class="btn btn-primary">Comentar</button>
 </form>
 {% if receita.comentarios %}
-<div class="comentarios-lista">{% for c in receita.comentarios | sort(attribute='data_criacao', reverse=True) %}
+<div class="comentarios-lista">{% for comentario in receita.comentarios | sort(attribute='data_criacao', reverse=True) %}
 <div class="comentario-card">
                 <div class="comentario-header">
                   <span class="comentario-autor"><i class="fa-solid fa-user"></i> {{ comentario.autor.nome }}</span>

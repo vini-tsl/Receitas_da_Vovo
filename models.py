@@ -9,6 +9,9 @@ class Usuario(db.Model):
     nome     = db.Column(db.String(100), nullable=False)
     email    = db.Column(db.String(150), unique=True, nullable=False)
     senha    = db.Column(db.String(200), nullable=False)
+    foto      = db.Column(db.String(200), nullable=True)
+    bio       = db.Column(db.String(300), nullable=True)
+    cor_tema  = db.Column(db.String(20), nullable=True, default='laranja')
     receitas  = db.relationship('Receita', backref='dono', lazy=True)
     favoritos = db.relationship('Favorito', backref='usuario', lazy=True)
 

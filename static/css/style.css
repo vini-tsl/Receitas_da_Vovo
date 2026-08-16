@@ -102,6 +102,16 @@ a:hover { color: var(--laranja-esc); }
   color: var(--creme-esc);
   font-size: 0.85rem;
   opacity: 0.75;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 /* ════════════════════════════════════════
@@ -755,21 +765,44 @@ a:hover { color: var(--laranja-esc); }
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  position: relative;
+  border-top: 4px solid var(--perfil-cor1, var(--laranja));
 }
+
+/* Temas de cor do perfil (customização) */
+.perfil-tema-laranja  { --perfil-cor1: #E07A2F; --perfil-cor2: #8B5E3C; }
+.perfil-tema-verde    { --perfil-cor1: #5A8F3C; --perfil-cor2: #2F5C21; }
+.perfil-tema-azul     { --perfil-cor1: #2980B9; --perfil-cor2: #1B4F72; }
+.perfil-tema-rosa     { --perfil-cor1: #D65A8F; --perfil-cor2: #93315C; }
+.perfil-tema-roxo     { --perfil-cor1: #8E5CB0; --perfil-cor2: #54306B; }
+.perfil-tema-vermelho { --perfil-cor1: #C0392B; --perfil-cor2: #7B241C; }
+
+.perfil-avatar-wrap { flex-shrink: 0; }
 
 .perfil-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--laranja), var(--marrom-med));
+  background: linear-gradient(135deg, var(--perfil-cor1, var(--laranja)), var(--perfil-cor2, var(--marrom-med)));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.2rem;
+  color: var(--branco);
   flex-shrink: 0;
 }
+
+.perfil-avatar-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--perfil-cor1, var(--laranja));
+}
+
+.perfil-info { flex: 1; min-width: 200px; }
 
 .perfil-info h1 {
   font-family: var(--fonte-titulo);
@@ -781,6 +814,19 @@ a:hover { color: var(--laranja-esc); }
   color: #888;
   font-size: 0.9rem;
   margin-top: 2px;
+}
+
+.perfil-bio {
+  color: var(--cinza-text) !important;
+  font-size: 0.9rem;
+  margin-top: 8px !important;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.perfil-btn-editar {
+  align-self: flex-start;
+  margin-left: auto;
 }
 
 .perfil-stats {
@@ -799,7 +845,7 @@ a:hover { color: var(--laranja-esc); }
 .perfil-stat .numero {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--laranja);
+  color: var(--perfil-cor1, var(--laranja));
   font-family: var(--fonte-titulo);
 }
 
@@ -875,6 +921,117 @@ a:hover { color: var(--laranja-esc); }
 .perfil-comentario-item p {
   font-size: 0.9rem;
   color: var(--cinza-text);
+}
+
+/* ── Formulário de edição do perfil ── */
+.perfil-edicao { border: 1px dashed var(--creme-esc); }
+
+.upload-area-avatar {
+  max-width: 220px;
+  padding: 1rem;
+}
+
+/* ── Seletor de cor do tema ── */
+.cor-tema-opcoes {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+}
+
+.cor-tema-opcao { cursor: pointer; display: inline-block; }
+
+.cor-tema-opcao input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cor-tema-bolinha {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  transition: transform var(--transicao), border-color var(--transicao);
+}
+
+.cor-tema-opcao input[type="radio"]:checked + .cor-tema-bolinha {
+  border-color: var(--marrom);
+  transform: scale(1.12);
+}
+
+.cor-tema-opcao:hover .cor-tema-bolinha { transform: scale(1.08); }
+
+/* ── Grid de mini-cards (Minhas Receitas / Favoritas) ── */
+.perfil-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.mini-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--creme);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform var(--transicao), box-shadow var(--transicao);
+  box-shadow: 0 1px 6px var(--sombra);
+}
+
+.mini-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px var(--sombra);
+}
+
+.mini-card-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.mini-card-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: var(--marrom-med);
+  background: linear-gradient(135deg, var(--creme-esc), var(--creme));
+}
+
+.mini-card-categoria {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--laranja);
+  padding: 6px 8px 0;
+}
+
+.mini-card-titulo {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--marrom);
+  padding: 2px 8px 8px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.perfil-ver-mais {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 0.8rem;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .perfil-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ════════════════════════════════════════

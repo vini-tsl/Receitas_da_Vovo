@@ -20,6 +20,12 @@ def extensao_permitida(nome_arquivo):
 def usuario_logado():
     return 'usuario_id' in session
 
+@app.context_processor
+def injetar_usuario_atual():
+    if usuario_logado():
+        return {'usuario_atual': Usuario.query.get(session['usuario_id'])}
+    return {'usuario_atual': None}
+
 def popular_banco():
     if Receita.query.filter_by(fixa=True).first():
         return
@@ -266,7 +272,7 @@ def editar_receita(id):
             foto.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_foto))
             receita.foto = nome_foto
         db.session.commit()
-        flash('Receita atualizada! ✏️', 'sucesso')
+        flash('Receita atualizada!', 'sucesso')
         return redirect(url_for('ver_receita', id=receita.id))
     return render_template('form_receita.html', receita=receita)
 
@@ -298,7 +304,7 @@ def favoritar(id):
     else:
         db.session.add(Favorito(usuario_id=session['usuario_id'], receita_id=receita.id))
         db.session.commit()
-        flash('Adicionado aos favoritos! ⭐', 'sucesso')
+        flash('Adicionado aos favoritos!', 'sucesso')
     return redirect(url_for('ver_receita', id=receita.id))
 
 @app.route('/comentar/<int:receita_id>', methods=['POST'])
@@ -312,7 +318,7 @@ def comentar(receita_id):
         return redirect(url_for('ver_receita', id=receita_id))
     db.session.add(Comentario(texto=texto, usuario_id=session['usuario_id'], receita_id=receita.id))
     db.session.commit()
-    flash('Comentário adicionado! 💬', 'sucesso')
+    flash('Comentário adicionado!', 'sucesso')
     return redirect(url_for('ver_receita', id=receita_id))
 
 @app.route('/comentario/excluir/<int:id>', methods=['POST'])
@@ -330,17 +336,60 @@ def excluir_comentario(id):
     flash('Comentário excluído.', 'info')
     return redirect(url_for('ver_receita', id=receita_id))
 
-@app.route('/perfil')
+CORES_TEMA_PERFIL = {
+    'laranja': {'nome': 'Laranja', 'cor1': '#E07A2F', 'cor2': '#8B5E3C'},
+    'verde':   {'nome': 'Verde',   'cor1': '#5A8F3C', 'cor2': '#2F5C21'},
+    'azul':    {'nome': 'Azul',    'cor1': '#2980B9', 'cor2': '#1B4F72'},
+    'rosa':    {'nome': 'Rosa',    'cor1': '#D65A8F', 'cor2': '#93315C'},
+    'roxo':    {'nome': 'Roxo',    'cor1': '#8E5CB0', 'cor2': '#54306B'},
+    'vermelho':{'nome': 'Vermelho','cor1': '#C0392B', 'cor2': '#7B241C'},
+}
+
+@app.route('/perfil', methods=['GET', 'POST'])
 def perfil():
     if not usuario_logado():
         return redirect(url_for('login'))
     usuario = Usuario.query.get_or_404(session['usuario_id'])
+
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        bio  = request.form.get('bio', '').strip()
+        cor_tema = request.form.get('cor_tema', '').strip()
+
+        if nome:
+            usuario.nome = nome
+            session['usuario_nome'] = nome
+        usuario.bio = bio or None
+        if cor_tema in CORES_TEMA_PERFIL:
+            usuario.cor_tema = cor_tema
+
+        foto = request.files.get('foto')
+        if foto and foto.filename and extensao_permitida(foto.filename):
+            if usuario.foto:
+                caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], usuario.foto)
+                if os.path.exists(caminho_antigo):
+                    os.remove(caminho_antigo)
+            nome_foto = f"perfil_{usuario.id}_{secure_filename(foto.filename)}"
+            foto.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_foto))
+            usuario.foto = nome_foto
+
+        db.session.commit()
+        flash('Perfil atualizado!', 'sucesso')
+        return redirect(url_for('perfil'))
+
     receitas_publicadas = Receita.query.filter_by(usuario_id=usuario.id).order_by(Receita.nome).all()
     favoritos = Favorito.query.filter_by(usuario_id=usuario.id).all()
     ids_fav = [f.receita_id for f in favoritos]
     receitas_favoritas = Receita.query.filter(Receita.id.in_(ids_fav)).all() if ids_fav else []
     comentarios = Comentario.query.filter_by(usuario_id=usuario.id).order_by(Comentario.data_criacao.desc()).all()
-    return render_template('perfil.html', usuario=usuario, receitas_publicadas=receitas_publicadas, receitas_favoritas=receitas_favoritas, comentarios=comentarios)
+    return render_template(
+        'perfil.html',
+        usuario=usuario,
+        receitas_publicadas=receitas_publicadas,
+        receitas_favoritas=receitas_favoritas,
+        comentarios=comentarios,
+        cores_tema=CORES_TEMA_PERFIL
+    )
 
 @app.route('/sobre')
 def sobre():
@@ -348,8 +397,26 @@ def sobre():
         return redirect(url_for('login'))
     return render_template('sobre.html')
 
+def migrar_colunas_perfil():
+    """Adiciona as colunas novas de perfil (foto, bio, cor_tema) em bancos
+    já existentes, sem apagar os dados de usuários já cadastrados."""
+    from sqlalchemy import text
+    colunas_existentes = {
+        linha[1] for linha in db.session.execute(text("PRAGMA table_info(usuario)"))
+    }
+    novas_colunas = {
+        'foto': "ALTER TABLE usuario ADD COLUMN foto VARCHAR(200)",
+        'bio': "ALTER TABLE usuario ADD COLUMN bio VARCHAR(300)",
+        'cor_tema': "ALTER TABLE usuario ADD COLUMN cor_tema VARCHAR(20) DEFAULT 'laranja'",
+    }
+    for coluna, comando in novas_colunas.items():
+        if coluna not in colunas_existentes:
+            db.session.execute(text(comando))
+    db.session.commit()
+
 with app.app_context():
     db.create_all()
+    migrar_colunas_perfil()
     popular_banco()
 
 if __name__ == '__main__':

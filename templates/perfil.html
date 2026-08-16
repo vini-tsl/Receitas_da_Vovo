@@ -2,24 +2,202 @@
 {% block titulo %}Meu Perfil{% endblock %}
 {% block conteudo %}
 <div class="container">
-<div class="perfil-header">
-<div class="perfil-avatar"><i class="fa-solid fa-user"></i></div>
-<div class="perfil-info"><h1>{{ usuario.nome }}</h1><p>{{ usuario.email }}</p>
-<div class="perfil-stats">
-<div class="perfil-stat"><span class="numero">{{ receitas_publicadas|length }}</span><span class="label">Receitas</span></div>
-<div class="perfil-stat"><span class="numero">{{ receitas_favoritas|length }}</span><span class="label">Favoritos</span></div>
-<div class="perfil-stat"><span class="numero">{{ comentarios|length }}</span><span class="label">Comentários</span></div>
-</div></div></div>
-<div class="perfil-secao"><h2><i class="fa-solid fa-utensils"></i> Minhas Receitas</h2>
-{% if receitas_publicadas %}{% for r in receitas_publicadas %}
-<div class="perfil-receita-item"><a href="{{ url_for('ver_receita', id=r.id) }}">{{ r.nome }}</a><span class="card-categoria">{{ r.categoria }}</span></div>
-{% endfor %}{% else %}<p class="sem-comentarios">Nenhuma receita publicada ainda.</p>{% endif %}</div>
-<div class="perfil-secao"><h2><i class="fa-solid fa-star"></i> Favoritas</h2>
-{% if receitas_favoritas %}{% for r in receitas_favoritas %}
-<div class="perfil-receita-item"><a href="{{ url_for('ver_receita', id=r.id) }}">{{ r.nome }}</a><span class="card-categoria">{{ r.categoria }}</span></div>
-{% endfor %}{% else %}<p class="sem-comentarios">Nenhuma receita favoritada ainda.</p>{% endif %}</div>
-<div class="perfil-secao"><h2><i class="fa-solid fa-comment"></i> Comentários</h2>
-{% if comentarios %}{% for c in comentarios %}
-<div class="perfil-comentario-item"><p class="receita-ref">Em <a href="{{ url_for('ver_receita', id=c.receita_id) }}">{{ c.receita.nome }}</a></p><p>{{ c.texto }}</p></div>
-{% endfor %}{% else %}<p class="sem-comentarios">Nenhum comentário ainda.</p>{% endif %}</div>
-</div>{% endblock %}
+
+  {# ════════════════════════════════════════
+     CABEÇALHO DO PERFIL
+     ════════════════════════════════════════ #}
+  <div class="perfil-header perfil-tema-{{ usuario.cor_tema or 'laranja' }}">
+    <div class="perfil-avatar-wrap">
+      {% if usuario.foto %}
+        <img class="perfil-avatar-img"
+          src="{{ url_for('static', filename='uploads/' + usuario.foto) }}" alt="{{ usuario.nome }}" />
+      {% else %}
+        <div class="perfil-avatar"><i class="fa-solid fa-user"></i></div>
+      {% endif %}
+    </div>
+
+    <div class="perfil-info">
+      <h1>{{ usuario.nome }}</h1>
+      <p>{{ usuario.email }}</p>
+      {% if usuario.bio %}
+        <p class="perfil-bio">{{ usuario.bio }}</p>
+      {% endif %}
+      <div class="perfil-stats">
+        <div class="perfil-stat"><span class="numero">{{ receitas_publicadas|length }}</span><span class="label">Receitas</span></div>
+        <div class="perfil-stat"><span class="numero">{{ receitas_favoritas|length }}</span><span class="label">Favoritos</span></div>
+        <div class="perfil-stat"><span class="numero">{{ comentarios|length }}</span><span class="label">Comentários</span></div>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-secondary perfil-btn-editar" onclick="toggleEdicaoPerfil()">
+      <i class="fas fa-pen"></i> <span id="label-editar-perfil">Editar Perfil</span>
+    </button>
+  </div>
+
+  {# ════════════════════════════════════════
+     FORMULÁRIO DE EDIÇÃO (foto, bio, nome, cor)
+     ════════════════════════════════════════ #}
+  <div class="perfil-secao perfil-edicao" id="perfil-edicao" style="display:none;">
+    <h2><i class="fa-solid fa-sliders"></i> Personalizar Perfil</h2>
+    <form method="POST" action="{{ url_for('perfil') }}" enctype="multipart/form-data">
+
+      <div class="form-group">
+        <label>Foto de perfil</label>
+        <div class="upload-area upload-area-avatar" id="upload-area-avatar">
+          <input type="file" id="foto-perfil" name="foto" accept="image/*" />
+          <div id="upload-texto-avatar">
+            <p style="font-size: 1.8rem; margin-bottom: 0.4rem;"><i class="fas fa-camera"></i></p>
+            <p style="color: #aaa; font-size: 0.85rem;">Clique para escolher uma foto</p>
+          </div>
+          <img id="upload-preview-avatar" class="upload-preview" alt="Preview"
+            {% if usuario.foto %}
+              src="{{ url_for('static', filename='uploads/' + usuario.foto) }}"
+              style="display:block; max-height: 140px; border-radius: 50%;"
+            {% endif %} />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" name="nome" value="{{ usuario.nome }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="bio">Sobre você</label>
+        <textarea id="bio" name="bio" maxlength="300"
+          placeholder="Conte um pouco sobre você e sua relação com a cozinha..."
+          style="min-height: 90px;">{{ usuario.bio or '' }}</textarea>
+        <span class="form-hint">Até 300 caracteres.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Cor do tema</label>
+        <div class="cor-tema-opcoes">
+          {% for chave, dados in cores_tema.items() %}
+            <label class="cor-tema-opcao">
+              <input type="radio" name="cor_tema" value="{{ chave }}"
+                {% if (usuario.cor_tema or 'laranja') == chave %}checked{% endif %} />
+              <span class="cor-tema-bolinha"
+                style="background: linear-gradient(135deg, {{ dados.cor1 }}, {{ dados.cor2 }});"
+                title="{{ dados.nome }}"></span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div style="display:flex; gap:1rem; margin-top:1rem;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+        <button type="button" class="btn btn-secondary" onclick="toggleEdicaoPerfil()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  {# ════════════════════════════════════════
+     MINHAS RECEITAS — grid 4 por linha, 2 linhas
+     ════════════════════════════════════════ #}
+  <div class="perfil-secao">
+    <h2><i class="fa-solid fa-utensils"></i> Minhas Receitas</h2>
+    {% if receitas_publicadas %}
+      <div class="perfil-grid">
+        {% for r in receitas_publicadas[:8] %}
+          <a href="{{ url_for('ver_receita', id=r.id) }}" class="mini-card">
+            {% if r.foto %}
+              <img class="mini-card-img" src="{{ url_for('static', filename='uploads/' + r.foto) }}" alt="{{ r.nome }}" />
+            {% else %}
+              <div class="mini-card-img mini-card-img-placeholder"><i class="fas fa-utensils"></i></div>
+            {% endif %}
+            <span class="mini-card-categoria">{{ r.categoria }}</span>
+            <span class="mini-card-titulo">{{ r.nome }}</span>
+          </a>
+        {% endfor %}
+      </div>
+      {% if receitas_publicadas|length > 8 %}
+        <p class="perfil-ver-mais">Mostrando 8 de {{ receitas_publicadas|length }} receitas.</p>
+      {% endif %}
+    {% else %}
+      <p class="sem-comentarios">Nenhuma receita publicada ainda.</p>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════
+     FAVORITAS — grid 4 por linha, 2 linhas
+     ════════════════════════════════════════ #}
+  <div class="perfil-secao">
+    <h2><i class="fa-solid fa-star"></i> Favoritas</h2>
+    {% if receitas_favoritas %}
+      <div class="perfil-grid">
+        {% for r in receitas_favoritas[:8] %}
+          <a href="{{ url_for('ver_receita', id=r.id) }}" class="mini-card">
+            {% if r.foto %}
+              <img class="mini-card-img" src="{{ url_for('static', filename='uploads/' + r.foto) }}" alt="{{ r.nome }}" />
+            {% else %}
+              <div class="mini-card-img mini-card-img-placeholder"><i class="fas fa-utensils"></i></div>
+            {% endif %}
+            <span class="mini-card-categoria">{{ r.categoria }}</span>
+            <span class="mini-card-titulo">{{ r.nome }}</span>
+          </a>
+        {% endfor %}
+      </div>
+      {% if receitas_favoritas|length > 8 %}
+        <p class="perfil-ver-mais">Mostrando 8 de {{ receitas_favoritas|length }} favoritas.</p>
+      {% endif %}
+    {% else %}
+      <p class="sem-comentarios">Nenhuma receita favoritada ainda.</p>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════
+     COMENTÁRIOS
+     ════════════════════════════════════════ #}
+  <div class="perfil-secao">
+    <h2><i class="fa-solid fa-comment"></i> Comentários</h2>
+    {% if comentarios %}
+      {% for c in comentarios %}
+        <div class="perfil-comentario-item">
+          <p class="receita-ref">Em <a href="{{ url_for('ver_receita', id=c.receita_id) }}">{{ c.receita.nome }}</a></p>
+          <p>{{ c.texto }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="sem-comentarios">Nenhum comentário ainda.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  function toggleEdicaoPerfil() {
+    const painel = document.getElementById('perfil-edicao');
+    const label  = document.getElementById('label-editar-perfil');
+    const aberto = painel.style.display === 'block';
+    painel.style.display = aberto ? 'none' : 'block';
+    label.textContent    = aberto ? 'Editar Perfil' : 'Fechar';
+    if (!aberto) painel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Upload + preview da foto de perfil (mesmo padrão da foto de receita)
+  (function () {
+    const area    = document.getElementById('upload-area-avatar');
+    const input   = document.getElementById('foto-perfil');
+    const texto   = document.getElementById('upload-texto-avatar');
+    const preview = document.getElementById('upload-preview-avatar');
+    if (!area || !input) return;
+
+    area.addEventListener('click', function () { input.click(); });
+
+    input.addEventListener('change', function () {
+      const arquivo = input.files && input.files[0];
+      if (!arquivo) return;
+      const leitor = new FileReader();
+      leitor.onload = function (e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        preview.style.maxHeight = '140px';
+        preview.style.borderRadius = '50%';
+        if (texto) texto.style.display = 'none';
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+  })();
+</script>
+{% endblock %}

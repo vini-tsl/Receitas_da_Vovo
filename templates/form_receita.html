@@ -40,7 +40,13 @@
           <label for="categoria">Categoria *</label>
           <select id="categoria" name="categoria" required>
             <option value="">Selecione...</option>
-            {% for cat in ['Doce', 'Salgado', 'Sobremesa', 'Massa', 'Sopa', 'Salada', 'Lanche', 'Bebida', 'Outro'] %}
+            {% for cat in [
+              'Doce', 'Salgado', 'Sobremesa', 'Massa',
+              'Sopa', 'Salada', 'Lanche', 'Bebida',
+              'Carne', 'Frango', 'Peixe e Frutos do Mar', 'Arroz',
+              'Pães', 'Bolos', 'Tortas', 'Pizza',
+              'Molhos', 'Petiscos', 'Vegetariana', 'Vegana',
+              'Saudável', 'Outro'] %}
               <option value="{{ cat }}"
                 {% if receita and receita.categoria == cat %}selected{% endif %}>
                 {{ cat }}
@@ -133,7 +139,7 @@
       {# ── Botões ── #}
       <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
         <button type="submit" class="btn btn-primary">
-          {% if receita %}<i class="fas fa-save"></i> Salvar Alterações{% else %}<i class="fas fa-utensils"> Adicionar Receita{% endif %}
+          {% if receita %}Salvar Alterações{% else %}Adicionar Receita{% endif %}
         </button>
         <a href="{% if receita %}{{ url_for('ver_receita', id=receita.id) }}{% else %}{{ url_for('index') }}{% endif %}"
           class="btn btn-secondary">Cancelar</a>
