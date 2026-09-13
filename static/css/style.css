@@ -747,6 +747,52 @@ a:hover { color: var(--laranja-esc); }
 
 .btn-excluir-comentario:hover { color: var(--vermelho); }
 
+.btn-responder {
+  background: none;
+  border: none;
+  color: var(--laranja);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0;
+  margin-top: 0.65rem;
+}
+
+.btn-responder:hover { color: var(--marrom); }
+
+.form-resposta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0.8rem 0 0.3rem 1rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--creme-esc);
+}
+
+.form-resposta textarea {
+  width: 100%;
+  min-height: 65px;
+  padding: 9px 11px;
+  border: 1px solid var(--creme-esc);
+  border-radius: 6px;
+  font-family: var(--fonte-texto);
+  resize: vertical;
+}
+
+.form-resposta .btn { align-self: flex-start; }
+
+.respostas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 1rem 0 0 1rem;
+}
+
+.comentario-resposta {
+  background: var(--branco);
+  border-left-color: var(--creme-esc);
+  padding: 0.8rem 1rem;
+}
+
 .sem-comentarios {
   color: #aaa;
   font-size: 0.9rem;

@@ -15,6 +15,7 @@
 <form method="POST"><div class="form-group"><label>E-mail</label><input type="email" name="email" required autofocus/></div>
 <div class="form-group"><label>Senha</label><input type="password" name="senha" required/></div>
 <button type="submit" class="btn btn-primary btn-full">Entrar</button></form>
+<p class="link-alt"><a href="{{ url_for('esqueci_senha') }}">Esqueceu a senha?</a></p>
 <p class="link-alt">Não tem conta? <a href="{{ url_for('cadastro') }}">Cadastre-se</a></p>
 </div></div>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>

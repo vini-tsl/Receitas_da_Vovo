@@ -1,5 +1,8 @@
 import os
+import secrets
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, Usuario, Receita, Favorito, Comentario
@@ -8,9 +11,17 @@ app = Flask(__name__)
 app.secret_key = '213SA210319KWIAOX0291'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///receitas.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'false').lower() == 'true'
+app.config['MAIL_USERNAME'] = "receitasdavovoweb@gmail.com"
+app.config['MAIL_PASSWORD'] = "fkuf yovj ofsm zgum"
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 EXTENSOES_PERMITIDAS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+mail = Mail(app)
 db.init_app(app)
 
 def extensao_permitida(nome_arquivo):
@@ -132,6 +143,74 @@ def cadastro():
         flash('Cadastro realizado! Faça seu login.', 'sucesso')
         return redirect(url_for('login'))
     return render_template('cadastro.html')
+
+def enviar_email_redefinicao(usuario, link):
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print(f'Link de redefinição de senha: {link}')
+        return True
+
+    try:
+        mensagem = Message(
+            'Redefinição de senha - Receitas da Vovó',
+            sender=app.config.get('MAIL_DEFAULT_SENDER') or app.config.get('MAIL_USERNAME'),
+            recipients=[usuario.email]
+        )
+        mensagem.body = (
+            'Você solicitou a redefinição da sua senha.\n\n'
+            f'Clique no link abaixo para criar uma nova senha:\n{link}\n\n'
+            'Se você não pediu esta alteração, ignore este e-mail.'
+        )
+        mensagem.html = (
+            '<p>Você solicitou a redefinição da sua senha.</p>'
+            f'<p><a href="{link}">Clique aqui para redefinir sua senha</a></p>'
+            '<p>Se você não pediu esta alteração, ignore este e-mail.</p>'
+        )
+        mail.send(mensagem)
+        return True
+    except Exception as erro:
+        print(f'Falha ao enviar e-mail de redefinição para {usuario.email}: {erro}')
+        print(f'Link de redefinição de senha: {link}')
+        return False
+
+@app.route('/esqueci-senha', methods=['GET', 'POST'])
+def esqueci_senha():
+    if usuario_logado():
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        usuario = Usuario.query.filter_by(email=email).first()
+        if usuario:
+            usuario.token_redefinicao = secrets.token_urlsafe(32)
+            usuario.token_expira_em = datetime.utcnow() + timedelta(minutes=30)
+            db.session.commit()
+            link = url_for('redefinir_senha', token=usuario.token_redefinicao, _external=True)
+            enviar_email_redefinicao(usuario, link)
+        flash('Se o e-mail existir, enviamos um link de redefinição.', 'sucesso')
+        return render_template('esqueci_senha.html')
+    return render_template('esqueci_senha.html')
+
+@app.route('/redefinir-senha/<token>', methods=['GET', 'POST'])
+def redefinir_senha(token):
+    usuario = Usuario.query.filter_by(token_redefinicao=token).first()
+    if not usuario or not usuario.token_expira_em or usuario.token_expira_em < datetime.utcnow():
+        flash('O link de redefinição é inválido ou expirou.', 'erro')
+        return redirect(url_for('esqueci_senha'))
+    if request.method == 'POST':
+        nova_senha = request.form.get('nova_senha', '')
+        confirmar_senha = request.form.get('confirmar_senha', '')
+        if len(nova_senha) < 6:
+            flash('A senha deve ter pelo menos 6 caracteres.', 'erro')
+            return render_template('redefinir_senha.html')
+        if nova_senha != confirmar_senha:
+            flash('As senhas não coincidem.', 'erro')
+            return render_template('redefinir_senha.html')
+        usuario.senha = generate_password_hash(nova_senha)
+        usuario.token_redefinicao = None
+        usuario.token_expira_em = None
+        db.session.commit()
+        flash('Senha redefinida com sucesso! Faça seu login.', 'sucesso')
+        return redirect(url_for('login'))
+    return render_template('redefinir_senha.html')
 
 @app.route('/logout')
 def logout():
@@ -316,7 +395,24 @@ def comentar(receita_id):
     if not texto:
         flash('O comentário não pode estar vazio.', 'erro')
         return redirect(url_for('ver_receita', id=receita_id))
-    db.session.add(Comentario(texto=texto, usuario_id=session['usuario_id'], receita_id=receita.id))
+    resposta_de_id = request.form.get('resposta_de_id', '').strip()
+    comentario_pai = None
+    if resposta_de_id:
+        try:
+            comentario_pai = Comentario.query.filter_by(
+                id=int(resposta_de_id), receita_id=receita.id
+            ).first()
+        except ValueError:
+            comentario_pai = None
+        if not comentario_pai or comentario_pai.resposta_de_id is not None:
+            flash('Só é possível responder comentários principais desta receita.', 'erro')
+            return redirect(url_for('ver_receita', id=receita_id))
+    db.session.add(Comentario(
+        texto=texto,
+        usuario_id=session['usuario_id'],
+        receita_id=receita.id,
+        resposta_de_id=comentario_pai.id if comentario_pai else None
+    ))
     db.session.commit()
     flash('Comentário adicionado!', 'sucesso')
     return redirect(url_for('ver_receita', id=receita_id))
@@ -332,6 +428,9 @@ def excluir_comentario(id):
     if not eh_autor and not eh_dono:
         flash('Sem permissão.', 'erro')
         return redirect(url_for('ver_receita', id=receita_id))
+    if comentario.resposta_de_id is None:
+        for resposta in comentario.respostas:
+            db.session.delete(resposta)
     db.session.delete(comentario); db.session.commit()
     flash('Comentário excluído.', 'info')
     return redirect(url_for('ver_receita', id=receita_id))
@@ -414,9 +513,29 @@ def migrar_colunas_perfil():
             db.session.execute(text(comando))
     db.session.commit()
 
+def migrar_colunas_novas():
+    """Adiciona campos de redefinição de senha e respostas sem apagar dados."""
+    from sqlalchemy import text
+    tabelas = {
+        'usuario': {
+            'token_redefinicao': "ALTER TABLE usuario ADD COLUMN token_redefinicao VARCHAR(200)",
+            'token_expira_em': "ALTER TABLE usuario ADD COLUMN token_expira_em DATETIME",
+        },
+        'comentario': {
+            'resposta_de_id': "ALTER TABLE comentario ADD COLUMN resposta_de_id INTEGER",
+        },
+    }
+    for tabela, colunas in tabelas.items():
+        existentes = {linha[1] for linha in db.session.execute(text(f"PRAGMA table_info({tabela})"))}
+        for coluna, comando in colunas.items():
+            if coluna not in existentes:
+                db.session.execute(text(comando))
+    db.session.commit()
+
 with app.app_context():
     db.create_all()
     migrar_colunas_perfil()
+    migrar_colunas_novas()
     popular_banco()
 
 if __name__ == '__main__':

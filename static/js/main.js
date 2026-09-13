@@ -65,10 +65,23 @@ function configurarFlash() {
   });
 }
 
+function configurarRespostas() {
+  const botoes = document.querySelectorAll('.btn-responder');
+  botoes.forEach(function (botao) {
+    botao.addEventListener('click', function () {
+      const formulario = document.getElementById(`form-resposta-${botao.dataset.resposta}`);
+      if (!formulario) return;
+      formulario.hidden = !formulario.hidden;
+      if (!formulario.hidden) formulario.querySelector('textarea').focus();
+    });
+  });
+}
+
 
 // ── Roda tudo quando a página carregar ───────
 document.addEventListener('DOMContentLoaded', function () {
   configurarUpload();
   configurarExclusao();
   configurarFlash();
+  configurarRespostas();
 });
