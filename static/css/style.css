@@ -309,6 +309,8 @@ a:hover { color: var(--laranja-esc); }
   gap: 4px;
 }
 
+.card-avaliacao { color: #a56812; }
+
 .badge-vovo {
   font-size: 0.72rem;
   font-weight: 700;
@@ -403,6 +405,40 @@ a:hover { color: var(--laranja-esc); }
   padding-top: 1.5rem;
   border-top: 1px solid var(--creme-esc);
 }
+
+.avaliacao-secao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--creme-esc);
+  border-bottom: 1px solid var(--creme-esc);
+}
+
+.avaliacao-secao h2 {
+  margin: 0 0 0.35rem;
+  color: var(--marrom);
+  font-family: var(--fonte-titulo);
+  font-size: 1.15rem;
+}
+
+.avaliacao-media { color: #a56812; font-weight: 700; }
+.avaliacao-media span { color: #777; font-weight: 400; }
+.form-avaliacao { display: flex; align-items: end; gap: 1rem; flex-wrap: wrap; }
+.form-avaliacao fieldset { border: 0; padding: 0; margin: 0; }
+.form-avaliacao legend { color: var(--cinza-text); font-size: 0.85rem; margin-bottom: 0.3rem; }
+.avaliacao-estrelas { display: flex; flex-direction: row-reverse; justify-content: flex-end; }
+.avaliacao-estrelas input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.avaliacao-estrelas label { color: #c8c2b8; cursor: pointer; font-size: 1.35rem; padding: 0 2px; }
+.avaliacao-estrelas input:checked ~ label,
+.avaliacao-estrelas label:hover,
+.avaliacao-estrelas label:hover ~ label { color: #d69c24; }
+.avaliacao-estrelas input:focus-visible + label { outline: 2px solid var(--laranja); outline-offset: 2px; }
+.comentario-login { margin: 0 0 1.5rem; color: #666; }
+.comentario-login a { color: var(--laranja-esc); font-weight: 700; }
 
 /* ════════════════════════════════════════
    FORMULÁRIOS (Login, Cadastro, Receita)

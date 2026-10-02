@@ -8,13 +8,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
-  {% if session.get('usuario_id') %}
   <nav class="navbar">
     <a href="{{ url_for('index') }}" class="navbar-logo">
       <span><i class="fa-solid fa-cookie"></i></span> Receitas da Vovó
     </a>
 
     <div class="navbar-links">
+      {% if session.get('usuario_id') %}
       <span class="navbar-user">
         {% if usuario_atual and usuario_atual.foto %}
           <img src="{{ url_for('static', filename='uploads/' + usuario_atual.foto) }}"
@@ -25,9 +25,12 @@
       <a href="{{ url_for('perfil') }}">Meu Perfil</a>
       <a href="{{ url_for('nova_receita') }}" class="btn-nova">+ Nova Receita</a>
       <a href="{{ url_for('logout') }}">Sair</a>
+      {% else %}
+      <a href="{{ url_for('login') }}">Entrar</a>
+      <a href="{{ url_for('cadastro') }}" class="btn-nova">Criar conta</a>
+      {% endif %}
     </div>
   </nav>
-  {% endif %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

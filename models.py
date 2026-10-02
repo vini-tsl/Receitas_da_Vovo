@@ -16,6 +16,7 @@ class Usuario(db.Model):
     token_expira_em = db.Column(db.DateTime, nullable=True)
     receitas  = db.relationship('Receita', backref='dono', lazy=True)
     favoritos = db.relationship('Favorito', backref='usuario', lazy=True)
+    avaliacoes = db.relationship('Avaliacao', backref='usuario', cascade='all, delete-orphan', lazy=True)
 
     def __repr__(self):
         return f'<Usuario {self.nome}>'
@@ -36,6 +37,7 @@ class Receita(db.Model):
     foto          = db.Column(db.String(200), nullable=True)
     fixa          = db.Column(db.Boolean, default=False, nullable=False)
     usuario_id    = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    avaliacoes    = db.relationship('Avaliacao', backref='receita', cascade='all, delete-orphan', lazy=True)
 
     def __repr__(self):
         return f'<Receita {self.nome}>'
@@ -44,6 +46,18 @@ class Receita(db.Model):
 class Favorito(db.Model):
     __tablename__ = 'favorito'
     id         = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    receita_id = db.Column(db.Integer, db.ForeignKey('receita.id'), nullable=False)
+
+
+class Avaliacao(db.Model):
+    __tablename__ = 'avaliacao'
+    __table_args__ = (
+        db.UniqueConstraint('usuario_id', 'receita_id', name='uq_avaliacao_usuario_receita'),
+        db.CheckConstraint('nota >= 1 AND nota <= 5', name='ck_avaliacao_nota'),
+    )
+    id         = db.Column(db.Integer, primary_key=True)
+    nota       = db.Column(db.Integer, nullable=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     receita_id = db.Column(db.Integer, db.ForeignKey('receita.id'), nullable=False)
 

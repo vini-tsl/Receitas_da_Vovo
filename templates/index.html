@@ -157,6 +157,10 @@
            <div class="card-footer">
               <span class="card-info"><i class="fas fa-stopwatch"></i> {{ receita.tempo_preparo }}</span>
               <span class="card-info"><i class="fas fa-users"></i> {{ receita.porcoes }}</span>
+              {% set avaliacao = medias_avaliacoes.get(receita.id) %}
+              {% if avaliacao %}
+                <span class="card-info card-avaliacao"><i class="fas fa-star"></i> {{ '%.1f'|format(avaliacao.media) }} ({{ avaliacao.total }})</span>
+              {% endif %}
               {% if receita.fixa %}
                 <span class="badge-vovo"><i class="fas fa-user-nurse"></i> Vovó</span>
               {% endif %}

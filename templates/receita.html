@@ -43,8 +43,35 @@
         <p>{{ receita.modo_preparo }}</p>
       </div>
 
+      <section class="avaliacao-secao" aria-labelledby="titulo-avaliacao">
+        <div>
+          <h2 id="titulo-avaliacao">Avaliações</h2>
+          {% if media_avaliacoes is not none %}
+            <p class="avaliacao-media"><i class="fas fa-star" aria-hidden="true"></i> {{ '%.1f'|format(media_avaliacoes) }} de 5 <span>({{ total_avaliacoes }} {% if total_avaliacoes == 1 %}avaliação{% else %}avaliações{% endif %})</span></p>
+          {% else %}
+            <p class="avaliacao-media">Ainda sem avaliações</p>
+          {% endif %}
+        </div>
+        {% if session.get('usuario_id') %}
+          <form method="POST" action="{{ url_for('avaliar_receita', receita_id=receita.id) }}" class="form-avaliacao">
+            <fieldset>
+              <legend>{% if avaliacao_usuario %}Sua nota: {{ avaliacao_usuario.nota }} de 5. Alterar avaliação:{% else %}Sua nota{% endif %}</legend>
+              <div class="avaliacao-estrelas">
+                {% for nota in [5, 4, 3, 2, 1] %}
+                  <input type="radio" id="nota-{{ nota }}" name="nota" value="{{ nota }}" aria-label="{{ nota }} {% if nota == 1 %}estrela{% else %}estrelas{% endif %}" {% if avaliacao_usuario and avaliacao_usuario.nota == nota %}checked{% endif %} required />
+                  <label for="nota-{{ nota }}" title="{{ nota }} {% if nota == 1 %}estrela{% else %}estrelas{% endif %}"><i class="fas fa-star" aria-hidden="true"></i></label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            <button type="submit" class="btn btn-primary">{% if avaliacao_usuario %}Atualizar nota{% else %}Avaliar receita{% endif %}</button>
+          </form>
+        {% else %}
+          <a class="btn btn-primary" href="{{ url_for('login', next=url_for('ver_receita', id=receita.id)) }}">Entre para avaliar</a>
+        {% endif %}
+      </section>
   
 <div class="receita-acoes">
+{% if session.get('usuario_id') %}
 <form method="POST" action="{{ url_for('favoritar', id=receita.id) }}">
           <button type="submit" class="btn {% if favoritado %}btn-favorito-ativo{% else %}btn-secondary{% endif %}">
             {% if favoritado %}<i class="fas fa-star"></i> Favoritado{% else %}<i class="far fa-star"></i> Favoritar{% endif %}
@@ -58,15 +85,22 @@
 <form id="form-excluir" method="POST" action="{{ url_for('excluir_receita', id=receita.id) }}">
   <button type="submit" class="btn btn-danger">Excluir</button>
 </form>{% endif %}
+{% else %}
+<a class="btn btn-secondary" href="{{ url_for('login', next=url_for('ver_receita', id=receita.id)) }}">Entre para favoritar</a>
+{% endif %}
 </div>
 <div class="comentarios-secao">
         <h2 class="comentarios-titulo"><i class="fa-solid fa-comment"></i> Comentários ({{ receita.comentarios | length }})</h2>
 
         {# Formulário para novo comentário #}
+{% if session.get('usuario_id') %}
 <form method="POST" action="{{ url_for('comentar', receita_id=receita.id) }}" class="form-comentario">
   <textarea name="texto" placeholder="Deixe um comentário..." maxlength="500" required></textarea>
   <button type="submit" class="btn btn-primary">Comentar</button>
 </form>
+{% else %}
+<p class="comentario-login"><a href="{{ url_for('login', next=url_for('ver_receita', id=receita.id)) }}">Entre</a> ou <a href="{{ url_for('cadastro') }}">crie uma conta</a> para comentar e responder.</p>
+{% endif %}
 {% if receita.comentarios %}
 <div class="comentarios-lista">{% for comentario in receita.comentarios | selectattr('resposta_de_id', 'none') | sort(attribute='data_criacao', reverse=True) %}
 <div class="comentario-card">

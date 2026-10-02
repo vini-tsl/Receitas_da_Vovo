@@ -1,15 +1,16 @@
 import os
 import secrets
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, Usuario, Receita, Favorito, Comentario
+from models import db, Usuario, Receita, Favorito, Avaliacao, Comentario
 
 app = Flask(__name__)
 app.secret_key = '213SA210319KWIAOX0291'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///receitas.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///receitas.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
@@ -89,9 +90,7 @@ def popular_banco():
 
 @app.route('/')
 def inicio():
-    if usuario_logado():
-        return redirect(url_for('index'))
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -107,6 +106,10 @@ def login():
         if usuario and check_password_hash(usuario.senha, senha):
             session['usuario_id'] = usuario.id
             session['usuario_nome'] = usuario.nome
+            destino = request.args.get('next', '')
+            partes_destino = urlsplit(destino)
+            if partes_destino.path.startswith('/') and not partes_destino.netloc and not partes_destino.scheme and '\\' not in partes_destino.path:
+                return redirect(destino)
             return redirect(url_for('index'))
         flash('Email ou senha incorretos.', 'erro')
     return render_template('login.html')
@@ -220,9 +223,6 @@ def logout():
 
 @app.route('/receitas')
 def index():
-    if not usuario_logado():
-        return redirect(url_for('login'))
-
     # ── Coleta todos os parâmetros da URL ──────────────────────────────
     # Pesquisa simples
     busca = request.args.get('busca', '').strip()
@@ -271,6 +271,14 @@ def index():
 
     # Executa a query ordenando: receitas fixas primeiro, depois por nome
     receitas = query.order_by(Receita.fixa.desc(), Receita.nome).all()
+    medias_avaliacoes = {
+        receita_id: {'media': float(media), 'total': total}
+        for receita_id, media, total in db.session.query(
+            Avaliacao.receita_id,
+            db.func.avg(Avaliacao.nota),
+            db.func.count(Avaliacao.id)
+        ).group_by(Avaliacao.receita_id).all()
+    }
 
     # Verifica se algum filtro avançado está ativo (para manter o painel aberto)
     filtros_ativos = any([categoria, dificuldade, tempo_max])
@@ -287,16 +295,59 @@ def index():
         dificuldade=dificuldade,
         tempo_max=tempo_max,
         filtros_ativos=filtros_ativos,
-        categorias=categorias
+        categorias=categorias,
+        medias_avaliacoes=medias_avaliacoes
     )
 
 @app.route('/receita/<int:id>')
 def ver_receita(id):
-    if not usuario_logado():
-        return redirect(url_for('login'))
     receita = Receita.query.get_or_404(id)
-    favoritado = Favorito.query.filter_by(usuario_id=session['usuario_id'], receita_id=id).first() is not None
-    return render_template('receita.html', receita=receita, favoritado=favoritado)
+    usuario_id = session.get('usuario_id')
+    favoritado = usuario_id is not None and Favorito.query.filter_by(
+        usuario_id=usuario_id, receita_id=id
+    ).first() is not None
+    avaliacao_usuario = None
+    if usuario_id is not None:
+        avaliacao_usuario = Avaliacao.query.filter_by(
+            usuario_id=usuario_id, receita_id=id
+        ).first()
+    estatisticas = db.session.query(
+        db.func.avg(Avaliacao.nota), db.func.count(Avaliacao.id)
+    ).filter_by(receita_id=id).first()
+    return render_template(
+        'receita.html',
+        receita=receita,
+        favoritado=favoritado,
+        avaliacao_usuario=avaliacao_usuario,
+        media_avaliacoes=float(estatisticas[0]) if estatisticas[0] is not None else None,
+        total_avaliacoes=estatisticas[1]
+    )
+
+@app.route('/avaliar/<int:receita_id>', methods=['POST'])
+def avaliar_receita(receita_id):
+    if not usuario_logado():
+        return redirect(url_for('login', next=url_for('ver_receita', id=receita_id)))
+    receita = Receita.query.get_or_404(receita_id)
+    try:
+        nota = int(request.form.get('nota', ''))
+    except ValueError:
+        nota = 0
+    if nota < 1 or nota > 5:
+        flash('Escolha uma nota entre 1 e 5 estrelas.', 'erro')
+        return redirect(url_for('ver_receita', id=receita.id))
+    avaliacao = Avaliacao.query.filter_by(
+        usuario_id=session['usuario_id'], receita_id=receita.id
+    ).first()
+    if avaliacao:
+        avaliacao.nota = nota
+        flash('Sua avaliação foi atualizada.', 'sucesso')
+    else:
+        db.session.add(Avaliacao(
+            nota=nota, usuario_id=session['usuario_id'], receita_id=receita.id
+        ))
+        flash('Avaliação registrada!', 'sucesso')
+    db.session.commit()
+    return redirect(url_for('ver_receita', id=receita.id))
 
 @app.route('/receita/nova', methods=['GET', 'POST'])
 def nova_receita():
